@@ -2,17 +2,131 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        h1 {
+            color: #007bff;
+            font-size: 2.5rem;
+            margin-top: 30px;
+            font-weight: 700;
+        }
+
+        /* Results Container */
+        .results-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .message {
+            color: #f44336;
+            font-size: 1.2rem;
+            margin-top: 20px;
+        }
+
+        .results-container p {
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        /* Link Styling */
+        a {
+            text-decoration: none;
+            font-size: 1.1rem;
+            color: #007bff;
+            margin-top: 30px;
+            display: inline-block;
+            transition: color 0.3s;
+        }
+
+        a:hover {
+            color: #0056b3;
+        }
+
+        /* Table Styling (if results are displayed in tables) */
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            font-size: 1rem;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: 600;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover td {
+            background-color: #f1f1f1;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .results-container {
+                width: 90%;
+                padding: 15px;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            a {
+                font-size: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
+
     <h1>Search Results for Keywords: {{ keywords }}</h1>
-    {% if tables %}
-        {% for table in tables %}
-            <div>{{ table | safe }}</div>
-        {% endfor %}
-    {% else %}
-        <p>{{ message }}</p>
-    {% endif %}
+
+    <div class="results-container">
+        {% if tables %}
+            {% for table in tables %}
+                <div>{{ table | safe }}</div>
+            {% endfor %}
+        {% else %}
+            <p class="message">{{ message }}</p>
+        {% endif %}
+    </div>
+
     <a href="/">Back to Search</a>
+
 </body>
 </html>

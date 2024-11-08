@@ -45,7 +45,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('newindex.html')
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -66,7 +66,7 @@ def search():
     else:
         print("Results found:", results[['Title', 'processed_text']].head())  # Print a sample of found results
     
-    return render_template('results.html', results=results)
+    return render_template('newresults.html', results=results)
 
 if __name__ == '__main__':
     app.run(debug=True)

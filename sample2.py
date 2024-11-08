@@ -1,82 +1,170 @@
-#Importing required library 
-import streamlit as st
-from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import pandas as pd
+import spacy
+import scispacy
+from scispacy.abbreviation import AbbreviationDetector
+from scispacy.linking import EntityLinker
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from flask import Flask, request, render_template
 import os
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-import google.generativeai as genai
-from langchain_community.vectorstores import FAISS
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
-#api loading
-load_dotenv()
-os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-#Text Function
-def get_pdf_text(pdf_docs):
-    text=""
-    for pdf in pdf_docs:
-        pdf_reader= PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text+= page.extract_text()
-    return  text
-def get_text_chunks(text):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
-    chunks = text_splitter.split_text(text)
-    return chunks
-def get_vector_store(text_chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
-    vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
-def get_conversational_chain():
+import requests
+from functools import lru_cache
 
-    prompt_template = """
-    Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
-    provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
-    Context:\n {context}?\n
-    Question: \n{question}\n
+# --- Configuration ---
+DATA_DIR = "data"
+COVID_DATA_FILE = "dataset.csv"  # Replace with your actual data file
+ICD_API_URL = "https://icd.who.int/icdapi"
+DEFAULT_SEARCH_TYPE = "research"
 
-    Answer:
-    """
+# ICD API credentials (environment variables)
+CLIENT_ID = os.environ.get("ICD_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("ICD_CLIENT_SECRET")
 
-    model = ChatGoogleGenerativeAI(model="gemini-pro",temperature=0.3)
+# --- Data Loading and Preprocessing ---
+def load_data(filepath):
+    try:
+        df = pd.read_csv(filepath)
+        if df.empty:
+            raise ValueError(f"Data file '{filepath}' is empty.")
+        return df
+    except (FileNotFoundError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+        print(f"Error loading '{filepath}': {e}")
+        return None
 
-    prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
-    chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+covid_df = load_data(os.path.join(DATA_DIR, COVID_DATA_FILE))
 
-    return chain
-def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
-    
-    new_db = FAISS.load_local("faiss_index", embeddings)
-    docs = new_db.similarity_search(user_question)
 
-    chain = get_conversational_chain()
+# --- SpaCy Initialization ---
+try:
+    nlp = spacy.load("en_core_sci_sm") # Make absolutely sure this is the correct model name
 
-    
-    response = chain(
-        {"input_documents":docs, "question": user_question}
-        , return_only_outputs=True)
+    nlp.add_pipe("abbreviation_detector")
+    nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+except OSError as e:
+    print(f"Error loading SpaCy/SciSpacy: {e}")
+    exit()
 
-    print(response)
-    st.write("Reply: ", response["output_text"])
-def main():
-    st.set_page_config("Chat PDF")
-    st.header("Chat with PDF using Gemini💁")
+def preprocess_text(text):
+    if pd.isna(text) or not isinstance(text, str):
+        return ""
+    text = str(text)
+    doc = nlp(text)
+    abbreviations = {abrv.text: abrv._.long_form for abrv in doc._.abbreviations} # Create dict for replacements
+    for short_form, long_form in abbreviations.items(): # perform all replacements
+        text = text.replace(short_form, long_form)
 
-    user_question = st.text_input("Ask a Question from the PDF Files")
+    tokens = [token.lemma_.lower() for token in doc if not token.is_stop and not token.is_punct and not token.is_space]
+    return " ".join(tokens)
 
-    if user_question:
-        user_input(user_question)
+if covid_df is not None:
+    text_col =  'text' if 'text' in covid_df.columns else ('abstract' if 'abstract' in covid_df.columns else None) # Select appropriate text column name
 
-    with st.sidebar:
-        st.title("Menu:")
-        pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
-        if st.button("Submit & Process"):
-            with st.spinner("Processing..."):
-                raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks)
-                st.success("Done")
+    if text_col:
+        covid_df['processed_text'] = covid_df[text_col].apply(preprocess_text) # Use variable to select correct column
+    else:
+        print("No suitable text column ('text' or 'abstract') found in dataset.")
+        exit()
+# ... (Rest of the code - ICD functions, search, Flask app - should work as provided before)
+# --- 2. Query Processing and Boolean Generation ---
+
+@lru_cache(maxsize=1)
+def get_icd_access_token():
+    url = f"{ICD_API_URL}/Token"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "client_credentials"
+    }
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        token_data = response.json()
+        return token_data.get("access_token")
+    except requests.exceptions.RequestException as e:
+        print(f"Error during access token retrieval: {e}")
+        return None
+
+
+def get_icd_codes(query):
+    token = get_icd_access_token()
+    if token is None:
+        print("Error: Could not obtain ICD access token.")
+        return []
+
+    url = f"{ICD_API_URL}/GetICD11CodeInfo"
+    headers = {
+        "Accept": "application/json",
+        "API-Version": "v2",
+        "Authorization": f"Bearer {token}"
+    }
+    params = {"q": query, "useFlexisearch": "true"}
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        icd_codes = [item["code"] for item in data.get("linearizations", []) if "code" in item]
+        return icd_codes
+    except requests.exceptions.RequestException as e:
+        print(f"Error in ICD API request: {e}")
+        return []
+
+def generate_boolean_query(user_query, search_type=DEFAULT_SEARCH_TYPE):
+    doc = nlp(user_query)
+    keywords = []
+    for token in doc:
+        if not (token.is_stop or token.is_punct or token.is_space):
+            if token.ent_type_ in ("DISEASE", "CHEMICAL", "DRUG"):
+                umls_entities = [entity.kb_id_ for entity in token._.kb_ents if entity.kb_id_]
+                keywords.extend(umls_entities)
+            keywords.append(token.lemma_.lower())
+
+    icd_codes = get_icd_codes(user_query)
+    if icd_codes:
+        keywords.extend(icd_codes)
+
+    query_string = " AND ".join(keywords)
+    return query_string
+
+# --- 3. Search and Retrieval ---
+def search_data(query_string, data_source):
+    if data_source == "research" and covid_df is not None and 'processed_text' in covid_df.columns:
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix = vectorizer.fit_transform(covid_df['processed_text'])
+        query_vec = vectorizer.transform([query_string])
+        similarity_scores = cosine_similarity(query_vec, tfidf_matrix)
+
+        top_indices = similarity_scores[0].argsort()[::-1]
+        results = covid_df.iloc[top_indices].head(50)
+    else:
+        results = pd.DataFrame()
+
+    return results
+
+# --- 4. Flask App ---
+app = Flask(__name__)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        query = request.form.get('query', '').strip()
+
+        if not query:
+            error_message = "Please enter a search query"
+            return render_template('newindex.html', error_message=error_message)
+
+        search_type = request.form.get('search_type', DEFAULT_SEARCH_TYPE)
+        boolean_query = generate_boolean_query(query, search_type)
+        results = search_data(boolean_query, search_type)
+
+        if results.empty:
+            no_results_message = "No results found for your query."
+            return render_template('newresults.html', message=no_results_message, query=query, num_results=0)
+
+        return render_template('newresults.html', tables=[results.to_html(classes='data')], query=query, num_results=len(results))
+
+    return render_template('newindex.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
