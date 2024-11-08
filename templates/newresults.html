@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+</head>
+<body>
+    <h1>Search Results for Keywords: {{ keywords }}</h1>
+    {% if tables %}
+        {% for table in tables %}
+            <div>{{ table | safe }}</div>
+        {% endfor %}
+    {% else %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <a href="/">Back to Search</a>
+</body>
+</html>
