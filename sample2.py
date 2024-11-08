@@ -1,24 +1,27 @@
 import pandas as pd
-import spacy
-import scispacy
-from scispacy.abbreviation import AbbreviationDetector
-from scispacy.linking import EntityLinker
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import Flask, request, render_template
 import os
 import requests
 from functools import lru_cache
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('stopwords')
 
 # --- Configuration ---
-DATA_DIR = "data"
-COVID_DATA_FILE = "dataset.csv"  # Replace with your actual data file
+DATA_DIR = r"K:\hackathon\New folder"  # Use a raw string (r"...") for Windows paths
+COVID_DATA_FILE = "dataset.csv" # Replace with your actual data file
 ICD_API_URL = "https://icd.who.int/icdapi"
 DEFAULT_SEARCH_TYPE = "research"
 
-# ICD API credentials (environment variables)
-CLIENT_ID = os.environ.get("ICD_CLIENT_ID")
-CLIENT_SECRET = os.environ.get("ICD_CLIENT_SECRET")
+# ICD API credentials (environment variables - KEEP THESE SECURE!)
+CLIENT_ID = os.environ.get("YOUR_CLIENT_ID")  # Do NOT put credentials directly in the code
+CLIENT_SECRET = os.environ.get("YOUR_CLIENT_SECRET")
 
 # --- Data Loading and Preprocessing ---
 def load_data(filepath):
@@ -33,41 +36,27 @@ def load_data(filepath):
 
 covid_df = load_data(os.path.join(DATA_DIR, COVID_DATA_FILE))
 
-
-# --- SpaCy Initialization ---
-try:
-    nlp = spacy.load("en_core_sci_sm") # Make absolutely sure this is the correct model name
-
-    nlp.add_pipe("abbreviation_detector")
-    nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
-except OSError as e:
-    print(f"Error loading SpaCy/SciSpacy: {e}")
-    exit()
+# --- NLTK Initialization ---
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
 
 def preprocess_text(text):
     if pd.isna(text) or not isinstance(text, str):
         return ""
-    text = str(text)
-    doc = nlp(text)
-    abbreviations = {abrv.text: abrv._.long_form for abrv in doc._.abbreviations} # Create dict for replacements
-    for short_form, long_form in abbreviations.items(): # perform all replacements
-        text = text.replace(short_form, long_form)
-
-    tokens = [token.lemma_.lower() for token in doc if not token.is_stop and not token.is_punct and not token.is_space]
+    tokens = nltk.word_tokenize(text)
+    tokens = [lemmatizer.lemmatize(token.lower()) for token in tokens if token.isalnum() and token not in stop_words]
     return " ".join(tokens)
 
 if covid_df is not None:
-    text_col =  'text' if 'text' in covid_df.columns else ('abstract' if 'abstract' in covid_df.columns else None) # Select appropriate text column name
-
+    text_col = next((col for col in covid_df.columns if col in ('text', 'abstract')), None)
     if text_col:
-        covid_df['processed_text'] = covid_df[text_col].apply(preprocess_text) # Use variable to select correct column
+        covid_df['processed_text'] = covid_df[text_col].apply(preprocess_text)
     else:
         print("No suitable text column ('text' or 'abstract') found in dataset.")
         exit()
-# ... (Rest of the code - ICD functions, search, Flask app - should work as provided before)
-# --- 2. Query Processing and Boolean Generation ---
 
-@lru_cache(maxsize=1)
+# --- 2. Query Processing and Boolean Generation ---
+@lru_cache(maxsize=1)  # Cache the access token
 def get_icd_access_token():
     url = f"{ICD_API_URL}/Token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -78,13 +67,12 @@ def get_icd_access_token():
     }
     try:
         response = requests.post(url, headers=headers, data=data)
-        response.raise_for_status()
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         token_data = response.json()
         return token_data.get("access_token")
     except requests.exceptions.RequestException as e:
         print(f"Error during access token retrieval: {e}")
         return None
-
 
 def get_icd_codes(query):
     token = get_icd_access_token()
@@ -111,21 +99,11 @@ def get_icd_codes(query):
         return []
 
 def generate_boolean_query(user_query, search_type=DEFAULT_SEARCH_TYPE):
-    doc = nlp(user_query)
-    keywords = []
-    for token in doc:
-        if not (token.is_stop or token.is_punct or token.is_space):
-            if token.ent_type_ in ("DISEASE", "CHEMICAL", "DRUG"):
-                umls_entities = [entity.kb_id_ for entity in token._.kb_ents if entity.kb_id_]
-                keywords.extend(umls_entities)
-            keywords.append(token.lemma_.lower())
-
+    tokens = nltk.word_tokenize(user_query)
+    keywords = [lemmatizer.lemmatize(token.lower()) for token in tokens if token.isalnum() and token not in stop_words]
     icd_codes = get_icd_codes(user_query)
-    if icd_codes:
-        keywords.extend(icd_codes)
-
-    query_string = " AND ".join(keywords)
-    return query_string
+    keywords.extend(icd_codes)
+    return " AND ".join(keywords)
 
 # --- 3. Search and Retrieval ---
 def search_data(query_string, data_source):
@@ -136,9 +114,9 @@ def search_data(query_string, data_source):
         similarity_scores = cosine_similarity(query_vec, tfidf_matrix)
 
         top_indices = similarity_scores[0].argsort()[::-1]
-        results = covid_df.iloc[top_indices].head(50)
+        results = covid_df.iloc[top_indices].head(50)  # Get top 50 results
     else:
-        results = pd.DataFrame()
+        results = pd.DataFrame()  # Return empty dataframe if dataset is not loaded.
 
     return results
 
@@ -149,10 +127,9 @@ app = Flask(__name__)
 def index():
     if request.method == 'POST':
         query = request.form.get('query', '').strip()
-
         if not query:
             error_message = "Please enter a search query"
-            return render_template('newindex.html', error_message=error_message)
+            return render_template('index.html', error_message=error_message) # Added error handling for index.html too.
 
         search_type = request.form.get('search_type', DEFAULT_SEARCH_TYPE)
         boolean_query = generate_boolean_query(query, search_type)
@@ -160,11 +137,11 @@ def index():
 
         if results.empty:
             no_results_message = "No results found for your query."
-            return render_template('newresults.html', message=no_results_message, query=query, num_results=0)
+            return render_template('results.html', message=no_results_message, query=query, num_results=0)
 
-        return render_template('newresults.html', tables=[results.to_html(classes='data')], query=query, num_results=len(results))
+        return render_template('results.html', tables=[results.to_html(classes='data')], query=query, num_results=len(results))
 
-    return render_template('newindex.html')
+    return render_template('index.html') #  Corrected template name
 
 if __name__ == '__main__':
     app.run(debug=True)

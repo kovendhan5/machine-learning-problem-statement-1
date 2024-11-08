@@ -2,13 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Medical Query Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Data Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        .output {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Medical Query Generator</h1>
-    <form action="/search" method="post">
-        <input type="text" name="terms" placeholder="Enter medical terms (comma separated)">
-        <button type="submit">Search</button>
-    </form>
+    <div class="container">
+        <h1>Medical Data Analysis</h1>
+        <form method="POST">
+            <label for="query">Enter your query:</label>
+            <input type="text" id="query" name="query" required>
+            <button type="submit">Search</button>
+        </form>
+        
+        <div class="output">
+            {% if output %}
+                {% for db_name, db_output in output.items %}
+                    <h2>{{ db_name }}</h2>
+                    {% for key, results in db_output.items %}
+                        <h3>{{ key.replace('_', ' ').title() }}</h3>
+                        <ul>
+                            {% for result in results %}
+                                <li>{{ result }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
 </body>
 </html>
