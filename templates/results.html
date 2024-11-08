@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+</head>
+<body>
+    <h1>Search Results</h1>
+    
+    {% if results.empty %}
+        <p>No results found for your query.</p>
+    {% else %}
+        <ul>
+            {% for index, article in results.iterrows() %}
+                <li>
+                    <strong>{{ article['Title'] }}</strong>: 
+                    <a href="{{ article['URL'] }}">{{ article['URL'] }}</a> <!-- Link to study -->
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
+    <a href="/">Back to Search</a>
+</body>
+</html>
