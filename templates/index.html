@@ -3,44 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Data Analysis</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-        }
-        .output {
-            margin-top: 20px;
-        }
-    </style>
+    <title>Healthcare Data Retrieval</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Medical Data Analysis</h1>
-        <form method="POST">
-            <label for="query">Enter your query:</label>
-            <input type="text" id="query" name="query" required>
-            <button type="submit">Search</button>
-        </form>
-        
-        <div class="output">
-            {% if output %}
-                {% for db_name, db_output in output.items %}
-                    <h2>{{ db_name }}</h2>
-                    {% for key, results in db_output.items %}
-                        <h3>{{ key.replace('_', ' ').title() }}</h3>
-                        <ul>
-                            {% for result in results %}
-                                <li>{{ result }}</li>
-                            {% endfor %}
-                        </ul>
+    <h1>AI-Driven Boolean Query Generator for Healthcare</h1>
+    
+    <form method="POST">
+        <input type="text" name="query" placeholder="Enter your query here" required>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if output %}
+        <h2>Results:</h2>
+        {% for db_name, data in output.items() %}
+            <h3>Database: {{ db_name }}</h3>
+            {% if data['research_studies'] %}
+                <h4>Research Studies:</h4>
+                <table border="1">
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                    </tr>
+                    {% for study in data['research_studies'] %}
+                        <tr>
+                            <td>{{ study['_id'] }}</td>
+                            <td>{{ study['title'] }}</td>
+                            <td>{{ study['description'] }}</td>
+                        </tr>
                     {% endfor %}
-                {% endfor %}
+                </table>
+            {% else %}
+                <p>No research studies found.</p>
             {% endif %}
-        </div>
-    </div>
+
+            {% if data['medical_records'] %}
+                <h4>Medical Records:</h4>
+                <table border="1">
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient ID</th>
+                        <th>Symptoms</th>
+                    </tr>
+                    {% for record in data['medical_records'] %}
+                        <tr>
+                            <td>{{ record['_id'] }}</td>
+                            <td>{{ record['patient_id'] }}</td>
+                            <td>{{ record['symptoms'] | join(", ") }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>No medical records found.</p>
+            {% endif %}
+
+            {% if data['drug_interactions'] %}
+                <h4>Drug Interactions:</h4>
+                <table border="1">
+                    <tr>
+                        <th>ID</th>
+                        <th>Drug Name</th>
+                        <th>Interaction Details</th>
+                    </tr>
+                    {% for interaction in data['drug_interactions'] %}
+                        <tr>
+                            <td>{{ interaction['_id'] }}</td>
+                            <td>{{ interaction['drug_name'] }}</td>
+                            <td>{{ interaction['details'] }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>No drug interactions found.</p>
+            {% endif %}
+
+            {% if data['diagnostic_data'] %}
+                <h4>Diagnostic Data:</h4>
+                <table border="1">
+                    <tr>
+                        <th>ID</th>
+                        <th>Symptoms</th>
+                        <th>Lab Results</th>
+                    </tr>
+                    {% for diagnostic in data['diagnostic_data'] %}
+                        <tr>
+                            <td>{{ diagnostic['_id'] }}</td>
+                            <td>{{ diagnostic['symptoms'] | join(", ") }}</td>
+                            <td>{{ diagnostic['lab_results'] | join(", ") }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>No diagnostic data found.</p>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
 </body>
 </html>

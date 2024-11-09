@@ -4,10 +4,10 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# Download NLTK resources manually
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('stopwords')
+# Download necessary NLTK resources
+nltk.download('punkt')  # Ensure punkt is downloaded
+nltk.download('wordnet')  # Ensure wordnet is downloaded
+nltk.download('stopwords')  # Ensure stopwords are downloaded
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -66,7 +66,7 @@ def index():
     if request.method == 'POST':
         user_query = request.form.get('query', '').strip()
         boolean_query = generate_boolean_query(user_query)
-        
+
         for db_name in databases:
             db = client[db_name]
             output[db_name] = {}
