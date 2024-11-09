@@ -1,18 +1,3 @@
-## PROBLEM STATEMENT - 1
-# AI-Driven Boolean Query Generator for Healthcare
-
-Efficient information retrieval is essential in healthcare for advancing research, improving diagnostics, and supporting clinical decision-making. However, creating accurate Boolean queries to navigate complex medical databases can be challenging due to the vastness of data and specialized medical terminology. This project aims to develop an AI-driven solution that automates the creation of precise, context-aware Boolean queries tailored to specific healthcare needs.
-
-## Problem Statement
-
-In the healthcare industry, accessing and extracting relevant information from extensive medical databases is critical for:
-
-- Conducting medical research
-- Diagnosing conditions
-- Making informed treatment decisions
-
-However, the complexity of medical terminology and the volume of healthcare data make it difficult to manually formulate accurate Boolean queries. Inaccurate queries can lead to missed data points or overwhelming amounts of irrelevant information, impeding healthcare professionals’ ability to retrieve actionable insights. 
-**solution**
 # AI-Driven Boolean Query Generator for Healthcare
 This repository contains a solution for building an AI-Driven Boolean Query Generator for Healthcare, implemented in three approaches to streamline search queries for healthcare data. Each method was used to access, process, and filter large datasets effectively, providing search results tailored to healthcare data queries. The system uses APIs, databases, and NLP libraries to generate accurate Boolean queries.
 
