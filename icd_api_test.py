@@ -3,8 +3,8 @@ import requests
 from functools import lru_cache
 
 # ICD API credentials (environment variables - KEEP THESE SECURE!)
-CLIENT_ID = os.environ.get("3982eddd-016d-4d15-9728-7df1fe003c09_ee47cff8-cfa5-4110-96c2-6839fdaa28fa")  # Do NOT put credentials directly in the code
-CLIENT_SECRET = os.environ.get("0hQwn9J1AR4NLUfkdSC5YvaTkYCqMTWfsavTafXdPLQ=")  # Replace with your actual client secret
+CLIENT_ID = os.environ.get("YOUR_CLIENT_ID") 
+CLIENT_SECRET = os.environ.get("YOUR_CLIENT_SECRET")  # Replace with your actual client secret
 ICD_API_URL = "https://icdaccessmanagement.who.int/connect/token"
 
 @lru_cache(maxsize=1)  # Cache the access token

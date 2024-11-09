@@ -1,27 +1,39 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import pandas as pd
 
-app = Flask(__name__)
+# Load the dataset
+data_path = 'dataset.csv'
+df = pd.read_csv(data_path)
 
-# Load your dataset
-df = pd.read_csv('dataset.csv')  # Replace with your dataset file path
+# Streamlit app
+st.title("AI driven boolean query finder")
 
-def generate_boolean_query(terms):
-    return " AND ".join([f"{term.strip()}" for term in terms])
+# Input for keyword search
+keywords = st.text_input("Enter keywords (use 'AND' / 'OR' to refine):").upper()
 
-def search_articles(query):
-    return df[df['abstract'].str.contains(query, case=False, na=False)]
+# Function to filter the dataframe
+def filter_dataframe(df, query):
+    and_parts = [part.strip() for part in query.split(" AND ")]
+    filtered_df = df.copy()
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+    for part in and_parts:
+        or_keywords = [kw.strip() for kw in part.split(" OR ")]
+        filtered_df = filtered_df[
+            filtered_df.apply(
+                lambda row: any(row.astype(str).str.contains(kw, case=False, regex=True).any() for kw in or_keywords), 
+                axis=1
+            )
+        ]
 
-@app.route('/search', methods=['POST'])
-def search():
-    terms = request.form['terms'].split(',')
-    boolean_query = generate_boolean_query(terms)
-    results = search_articles(boolean_query)
-    return render_template('results.html', results=results)
+    return filtered_df
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Perform search if keywords are entered
+if keywords:
+    result_df = filter_dataframe(df, keywords)
+    if not result_df.empty:
+        st.write("Results:")
+        st.write(result_df)
+    else:
+        st.write("No results found for the given keywords.")
+else:
+    st.write("Please enter keywords to start the search.")

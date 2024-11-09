@@ -56,5 +56,3 @@ for db_name in databases:
 
         print("\nAccessing diagnostic data for symptoms ['fever'] and lab results ['positive']: ")
         access_diagnostic_data(db, ["fever"], ["positive"])
-
-    # Add similar blocks for other databases if needed
