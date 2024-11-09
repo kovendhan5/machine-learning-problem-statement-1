@@ -12,38 +12,80 @@ In the healthcare industry, accessing and extracting relevant information from e
 - Making informed treatment decisions
 
 However, the complexity of medical terminology and the volume of healthcare data make it difficult to manually formulate accurate Boolean queries. Inaccurate queries can lead to missed data points or overwhelming amounts of irrelevant information, impeding healthcare professionals’ ability to retrieve actionable insights. 
+**solution**
+# AI-Driven Boolean Query Generator for Healthcare
+This repository contains a solution for building an AI-Driven Boolean Query Generator for Healthcare, implemented in three approaches to streamline search queries for healthcare data. Each method was used to access, process, and filter large datasets effectively, providing search results tailored to healthcare data queries. The system uses APIs, databases, and NLP libraries to generate accurate Boolean queries.
 
-## Solution Overview
+# Overview
+The objective of this project is to build a Boolean Query Generator for Healthcare that utilizes various techniques to process and filter data for healthcare applications. This README outlines three approaches implemented to achieve the desired functionality and performance, along with the specific technologies and limitations encountered with each approach.
 
-### Deliverables
+# Solution Approaches
+# 1. ICD API Approach
+This approach leverages the ICD API for accessing a vast healthcare dataset. API credentials (Client ID and Client Secret) are required to authenticate and retrieve data. For security, these credentials are stored as environment variables:
 
-Develop an AI-based solution that automates Boolean query generation for healthcare applications. This system will leverage natural language processing (NLP) and AI techniques to create precise and contextually relevant queries that can:
+```python
+CLIENT_ID = os.environ.get("YOUR_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("YOUR_CLIENT_SECRET")
+```
+Steps:
+Set up environment variables to keep API credentials secure.
+Use the API to pull data based on healthcare queries.
+Generate Boolean queries by processing the retrieved dataset.
+Note:
+The ICD API key has expired, which limits this method from further use without renewed credentials.
 
-- Retrieve research studies or clinical trial data related to specific topics.
-- Filter medical records by patient symptoms or conditions.
-- Identify drug interactions or adverse events for specific treatments.
-- Access diagnostic data based on combinations of symptoms and lab results.
+# 2. MongoDB Database with Flask Integration
+In this method, the dataset is stored in a MongoDB database and connected to a Flask application. The AI model trained for the Boolean Query Generator retrieves data from the MongoDB database, enabling faster data access and processing within the application.
 
-### Objectives
+Steps:
+Integrate MongoDB with Flask for data retrieval.
+Use AI models to generate Boolean queries on the data stored in MongoDB.
+Process and return relevant results based on user inputs.
+Note:
+The MongoDB time limit has also expired, and a new configuration may be needed for further use.
 
-1. **Simplification of Medical Terminology**  
-   - Use NLP techniques to parse and simplify complex medical terms and map them to structured Boolean logic.
+# 3. Streamlit Application with NLP and Scapy
+The final approach utilizes Streamlit for a user-friendly interface, combined with Scapy and other NLP libraries for generating Boolean queries. This setup enables users to input healthcare-related search terms and receive filtered results based on the query.
 
-2. **Context-Aware Query Generation**  
-   - Leverage AI algorithms to ensure queries are precise and contextually relevant, minimizing false positives and negatives.
+Steps:
+Develop the Streamlit interface for ease of use.
+Integrate Scapy and NLP libraries to filter and process search terms.
+Return accurate Boolean query results based on the input, tailored for healthcare data.
+This Streamlit approach remains functional and continues to generate healthcare-focused Boolean queries accurately based on user inputs.
 
-3. **Adaptability to Evolving Datasets**  
-   - Enable the system to adapt as healthcare data and medical knowledge expand, maintaining relevance over time.
+Getting Started
+*Prerequisites*
+```
+Python 3.8+
+Streamlit
+Flask
+MongoDB
+ICD API (if reactivating the first approach)
+Scapy and NLP libraries (e.g., SpaCy, NLTK)
+```
+Installation
+Clone this repository:
 
-## Key Features
+```bash
+git clone https://github.com/kovendhan5/machine-learning-problem-statement-1
+```
+Install dependencies:
 
-- **NLP-Powered Terminology Parsing**: Automatically simplifies and maps complex medical terms for Boolean logic.
-- **AI-Driven Query Precision**: Uses context-aware algorithms to avoid irrelevant results and retrieve only pertinent data.
-- **Continuous Learning from Data**: Incorporates new medical knowledge and evolving datasets for sustained accuracy.
-- **Flexible Query Templates**: Supports different healthcare information needs, including research data, patient records, drug interactions, and diagnostic results.
-- **Symptom & Diagnostic Data**: Access data for complex cases involving multiple symptoms and lab results.
-- **Research Studies & Clinical Trials**: Retrieve studies relevant to specific treatments, conditions, or patient demographics.
+```bash
+pip install -r requirements.txt
+```
+Running the Application
+To run the Streamlit app (Approach 3):
 
----
+```bash
+streamlit run app.py
+```
+To run the Flask app with MongoDB (Approach 2):
 
-### Note: This serves only as a reference example. Innovative ideas and unique implementation techniques are highly encouraged and warmly welcomed! 
+```bash
+python flaskapp_database.py
+```
+Usage
+Choose one of the three approaches based on available credentials and requirements.
+For the Streamlit interface, navigate to the provided URL after starting the app and input healthcare-related terms to generate Boolean queries.
+For the Flask and MongoDB setup, use the Flask routes to interact with the AI model.
