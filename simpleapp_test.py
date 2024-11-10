@@ -4,7 +4,7 @@ import pandas as pd
 app = Flask(__name__)
 
 # Load your dataset
-df = pd.read_csv('dataset.csv')  # Replace with your dataset file path
+df = pd.read_csv('dataset.csv')  
 
 def generate_boolean_query(terms):
     return " AND ".join([f"{term.strip()}" for term in terms])

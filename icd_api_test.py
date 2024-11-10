@@ -4,7 +4,7 @@ from functools import lru_cache
 
 # ICD API credentials (environment variables - KEEP THESE SECURE!)
 CLIENT_ID = os.environ.get("YOUR_CLIENT_ID") 
-CLIENT_SECRET = os.environ.get("YOUR_CLIENT_SECRET")  # Replace with your actual client secret
+CLIENT_SECRET = os.environ.get("YOUR_CLIENT_SECRET") 
 ICD_API_URL = "https://icdaccessmanagement.who.int/connect/token"
 
 @lru_cache(maxsize=1)  # Cache the access token
@@ -18,7 +18,7 @@ def get_icd_access_token():
     }
     try:
         response = requests.post(url, headers=headers, data=data)
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()  
         token_data = response.json()
         return token_data.get("access_token")
     except requests.exceptions.RequestException as e:
@@ -50,6 +50,6 @@ def get_icd_codes(query):
         return []
 
 if __name__ == '__main__':
-    query = "diabetes"  # Replace with your search query
+    query = "diabetes"  
     icd_codes = get_icd_codes(query)
     print("ICD Codes:", icd_codes)

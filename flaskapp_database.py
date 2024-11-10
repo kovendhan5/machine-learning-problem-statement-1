@@ -4,10 +4,9 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# Download necessary NLTK resources
-nltk.download('punkt')  # Ensure punkt is downloaded
-nltk.download('wordnet')  # Ensure wordnet is downloaded
-nltk.download('stopwords')  # Ensure stopwords are downloaded
+nltk.download('punkt') 
+nltk.download('wordnet')  
+nltk.download('stopwords')  
 
 # Initialize Flask app
 app = Flask(__name__)
